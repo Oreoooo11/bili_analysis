@@ -4,29 +4,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>B站热门视频数据分析报告</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- WordCloud2.js（词云依赖） -->
+    <script src="https://cdn.jsdelivr.net/npm/wordcloud2.js@1.1.0/src/wordcloud2.js"></script>
+    <!-- 字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        primary: '#00aeec',
-                        secondary: '#fb7299',
-                        accent: '#946ce6',
-                        dark: '#181823',
-                        darker: '#10101a',
-                        card: '#1f1f2d',
-                        'text-light': '#e0e0e0',
-                        'text-gray': '#b0b0b0',
+                        primary: '#FF85A2', // 浅粉色作为主色调
+                        secondary: '#FFB6C1', // 更浅的粉色作为辅助色
+                        accent: '#FF69B4', // 亮粉色作为强调色
+                        dark: '#2A2A38', // 深色背景
+                        darker: '#1A1A26', // 更深的背景色
+                        card: '#2E2E40', // 卡片背景色
+                        'text-light': '#F8F8FF', // 浅色文本
+                        'text-gray': '#D3D3D3', // 灰色文本
                     },
                     fontFamily: {
                         inter: ['Inter', 'sans-serif'],
+                        notosans: ['"Noto Sans SC"', 'sans-serif'],
                     },
-                    backgroundImage: {
-                        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+                    animation: {
+                        'float': 'float 3s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
                     }
                 },
             }
@@ -34,24 +48,21 @@
     </script>
     <style type="text/tailwindcss">
         @layer utilities {
-            .content-auto {
-                content-visibility: auto;
-            }
             .text-gradient {
                 background-clip: text;
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
             }
             .bg-glass {
-                background: rgba(10, 12, 24, 0.85);
-                backdrop-filter: blur(10px);
+                background: rgba(42, 42, 56, 0.75);
+                backdrop-filter: blur(12px);
             }
             .card-hover {
-                transition: transform 0.3s, box-shadow 0.3s;
+                transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             }
             .card-hover:hover {
-                transform: translateY(-8px);
-                box-shadow: 0 15px 30px rgba(0, 0, 0, 0.25);
+                transform: translateY(-12px);
+                box-shadow: 0 20px 30px rgba(255, 133, 162, 0.15);
             }
             .stat-value-gradient {
                 background: linear-gradient(to right, var(--tw-color-primary), var(--tw-color-accent));
@@ -62,618 +73,627 @@
             .section-title::after {
                 content: '';
                 position: absolute;
-                bottom: -10px;
+                bottom: -12px;
                 left: 50%;
                 transform: translateX(-50%);
-                width: 80px;
+                width: 90px;
                 height: 4px;
                 background: linear-gradient(to right, var(--tw-color-primary), var(--tw-color-secondary));
                 border-radius: 2px;
             }
+            .animate-float-slow {
+                animation: float 6s ease-in-out infinite;
+            }
+            .bg-pattern {
+                background-image: radial-gradient(var(--tw-color-primary)/10 1px, transparent 1px);
+                background-size: 30px 30px;
+            }
+            .bg-custom {
+                background-image: url('bg1.jpg'); /* 自定义背景图片 */
+                background-size: cover;
+                background-position: center;
+                background-attachment: fixed;
+            }
         }
     </style>
 </head>
-<body class="font-inter bg-gradient-to-br from-darker to-dark text-text-light min-h-screen">
-    <!-- 导航栏 -->
-    <header class="bg-glass border-b border-[rgba(80,78,131,0.5)] sticky top-0 z-50 shadow-lg">
-        <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
-            <div class="flex items-center gap-4 mb-4 md:mb-0">
-                <i class="fa fa-line-chart text-secondary text-3xl"></i>
-                <h1 class="text-2xl md:text-3xl font-bold text-gradient bg-gradient-to-r from-primary to-secondary">B站数据分析中心</h1>
-            </div>
-            <nav class="flex flex-wrap justify-center gap-6">
-                <a href="#" class="text-text-light hover:text-primary transition-colors duration-300 flex items-center gap-2 relative group">
-                    <i class="fa fa-home"></i>
-                    <span>首页</span>
-                    <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
-                </a>
-                <a href="#" class="text-text-light hover:text-primary transition-colors duration-300 flex items-center gap-2 relative group">
-                    <i class="fa fa-fire"></i>
-                    <span>热门分析</span>
-                    <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
-                </a>
-                <a href="#" class="text-text-light hover:text-primary transition-colors duration-300 flex items-center gap-2 relative group">
-                    <i class="fa fa-video-camera"></i>
-                    <span>视频解析</span>
-                    <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
-                </a>
-                <a href="#" class="text-text-light hover:text-primary transition-colors duration-300 flex items-center gap-2 relative group">
-                    <i class="fa fa-download"></i>
-                    <span>数据下载</span>
-                    <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
-                </a>
-            </nav>
-        </div>
-    </header>
+<body class="font-notosans bg-custom min-h-screen overflow-x-hidden"> <!-- 修改了背景设置 -->
 
-    <!-- 英雄区 -->
-    <section class="py-16 md:py-24 relative overflow-hidden">
-        <div class="absolute top-0 left-0 w-full h-full bg-gradient-radial from-primary/5 to-transparent -z-10"></div>
-        <div class="container mx-auto px-4 text-center">
-            <h1 class="text-[clamp(2.5rem,5vw,4rem)] font-bold text-gradient bg-gradient-to-r from-primary via-accent to-secondary mb-6">B站热门视频数据分析报告</h1>
-            <p class="text-text-gray text-lg md:text-xl max-w-3xl mx-auto mb-12">本报告基于2023年第三季度B站热门视频数据，通过数据爬取、清洗和分析，揭示热门视频的特征与规律</p>
-            
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
-                <div class="bg-card/70 backdrop-blur-sm border border-[rgba(92,119,255,0.15)] rounded-xl p-6 card-hover">
-                    <div class="text-4xl md:text-5xl font-bold stat-value-gradient">12,583</div>
-                    <div class="text-text-gray mt-2">分析视频数量</div>
-                </div>
-                <div class="bg-card/70 backdrop-blur-sm border border-[rgba(92,119,255,0.15)] rounded-xl p-6 card-hover">
-                    <div class="text-4xl md:text-5xl font-bold stat-value-gradient">6.2M</div>
-                    <div class="text-text-gray mt-2">总弹幕数量</div>
-                </div>
-                <div class="bg-card/70 backdrop-blur-sm border border-[rgba(92,119,255,0.15)] rounded-xl p-6 card-hover">
-                    <div class="text-4xl md:text-5xl font-bold stat-value-gradient">348</div>
-                    <div class="text-text-gray mt-2">热门UP主</div>
-                </div>
-                <div class="bg-card/70 backdrop-blur-sm border border-[rgba(92,119,255,0.15)] rounded-xl p-6 card-hover">
-                    <div class="text-4xl md:text-5xl font-bold stat-value-gradient">30天</div>
-                    <div class="text-text-gray mt-2">数据采集周期</div>
-                </div>
+<!-- 装饰性背景元素 -->
+<div class="fixed inset-0 bg-darker/60 -z-10"></div> <!-- 添加半透明遮罩 -->
+<div class="fixed top-20 right-20 w-64 h-64 bg-primary/10 rounded-full filter blur-3xl animate-float-slow"></div>
+<div class="fixed bottom-20 left-20 w-80 h-80 bg-accent/10 rounded-full filter blur-3xl animate-float"></div>
+
+<!-- 导航栏 -->
+<header class="bg-glass border-b border-[rgba(255,133,162,0.2)] sticky top-0 z-50 shadow-lg">
+    <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
+        <div class="flex items-center gap-4 mb-4 md:mb-0">
+            <i class="fa fa-line-chart text-secondary text-3xl animate-pulse"></i>
+            <h1 class="text-2xl md:text-3xl font-bold text-gradient bg-gradient-to-r from-primary to-accent">B站数据分析中心</h1>
+        </div>
+        <nav class="flex flex-wrap justify-center gap-6">
+            <a href="#home" class="text-text-light hover:text-primary transition-all duration-300 flex items-center gap-2 relative group">
+                <i class="fa fa-home"></i>
+                <span>首页</span>
+                <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+            </a>
+            <a href="#analysis" class="text-text-light hover:text-primary transition-all duration-300 flex items-center gap-2 relative group">
+                <i class="fa fa-fire"></i>
+                <span>热门分析</span>
+                <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+            </a>
+            <a href="#videos" class="text-text-light hover:text-primary transition-all duration-300 flex items-center gap-2 relative group">
+                <i class="fa fa-video-camera"></i>
+                <span>视频解析</span>
+                <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+            </a>
+            <a href="#download" class="text-text-light hover:text-primary transition-all duration-300 flex items-center gap-2 relative group">
+                <i class="fa fa-download"></i>
+                <span>数据下载</span>
+                <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+            </a>
+        </nav>
+    </div>
+</header>
+
+<!-- 英雄区 -->
+<section id="home" class="py-16 md:py-24 relative overflow-hidden">
+    <div class="absolute top-0 left-0 w-full h-full bg-gradient-radial from-primary/10 to-transparent -z-10"></div>
+    <div class="container mx-auto px-4 text-center">
+        <h1 class="text-[clamp(2.5rem,5vw,4rem)] font-bold text-gradient bg-gradient-to-r from-primary via-accent to-secondary mb-6 leading-tight">
+            B站热门视频<br>数据分析报告
+        </h1>
+        <p class="text-text-gray text-lg md:text-xl max-w-3xl mx-auto mb-12 opacity-90">
+            基于真实数据的可视化分析，揭示B站热门视频规律
+        </p>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
+            <!-- 统计卡片1 -->
+            <div class="bg-card/70 backdrop-blur-md border border-[rgba(255,133,162,0.15)] rounded-2xl p-6 card-hover">
+                <div class="text-4xl md:text-5xl font-bold stat-value-gradient mb-2">12,583</div>
+                <div class="text-text-gray text-sm md:text-base">分析视频数量</div>
+            </div>
+            <!-- 统计卡片2 -->
+            <div class="bg-card/70 backdrop-blur-md border border-[rgba(255,133,162,0.15)] rounded-2xl p-6 card-hover">
+                <div class="text-4xl md:text-5xl font-bold stat-value-gradient mb-2">6.2M</div>
+                <div class="text-text-gray text-sm md:text-base">总弹幕数量</div>
+            </div>
+            <!-- 统计卡片3 -->
+            <div class="bg-card/70 backdrop-blur-md border border-[rgba(255,133,162,0.15)] rounded-2xl p-6 card-hover">
+                <div class="text-4xl md:text-5xl font-bold stat-value-gradient mb-2">348</div>
+                <div class="text-text-gray text-sm md:text-base">热门UP主</div>
+            </div>
+            <!-- 统计卡片4 -->
+            <div class="bg-card/70 backdrop-blur-md border border-[rgba(255,133,162,0.15)] rounded-2xl p-6 card-hover">
+                <div class="text-4xl md:text-5xl font-bold stat-value-gradient mb-2">30天</div>
+                <div class="text-text-gray text-sm md:text-base">数据采集周期</div>
             </div>
         </div>
-    </section>
+    </div>
+</section>
 
-    <!-- 图表区域 -->
-    <section class="py-16 md:py-24">
-        <h2 class="text-3xl md:text-4xl font-bold text-center mb-16 relative inline-block mx-auto section-title">可视化分析结果</h2>
+<!-- 可视化分析区域 -->
+<section id="analysis" class="py-16 md:py-24">
+    <h2 class="text-3xl md:text-4xl font-bold text-center mb-16 relative inline-block mx-auto section-title">可视化分析结果</h2>
+    <div class="container mx-auto px-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         
-        <div class="container mx-auto px-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- 图表1：热门分区视频数量分布 -->
-                <div class="bg-card rounded-xl overflow-hidden shadow-xl border border-[rgba(92,119,255,0.1)] card-hover">
-                    <div class="bg-card/80 border-b border-[rgba(80,78,131,0.3)] p-5">
-                        <h3 class="text-xl font-semibold text-[#a6c1ee]">热门分区视频数量分布</h3>
-                        <p class="text-text-gray text-sm mt-1">各内容分区的视频数量及占比情况</p>
-                    </div>
-                    <div class="p-6 bg-card/50">
-                        <div class="h-64 w-full">
-                            <canvas id="categoryChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 图表2：视频播放量与互动关系 -->
-                <div class="bg-card rounded-xl overflow-hidden shadow-xl border border-[rgba(92,119,255,0.1)] card-hover">
-                    <div class="bg-card/80 border-b border-[rgba(80,78,131,0.3)] p-5">
-                        <h3 class="text-xl font-semibold text-[#a6c1ee]">视频播放量与互动关系</h3>
-                        <p class="text-text-gray text-sm mt-1">播放量与点赞、收藏、投币的关系分析</p>
-                    </div>
-                    <div class="p-6 bg-card/50">
-                        <div class="h-64 w-full">
-                            <canvas id="interactionChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 图表3：热门视频发布时间分布 -->
-                <div class="bg-card rounded-xl overflow-hidden shadow-xl border border-[rgba(92,119,255,0.1)] card-hover">
-                    <div class="bg-card/80 border-b border-[rgba(80,78,131,0.3)] p-5">
-                        <h3 class="text-xl font-semibold text-[#a6c1ee]">热门视频发布时间分布</h3>
-                        <p class="text-text-gray text-sm mt-1">24小时内视频发布的时间规律</p>
-                    </div>
-                    <div class="p-6 bg-card/50">
-                        <div class="h-64 w-full">
-                            <canvas id="timeChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 图表4：视频时长与完播率 -->
-                <div class="bg-card rounded-xl overflow-hidden shadow-xl border border-[rgba(92,119,255,0.1)] card-hover">
-                    <div class="bg-card/80 border-b border-[rgba(80,78,131,0.3)] p-5">
-                        <h3 class="text-xl font-semibold text-[#a6c1ee]">视频时长与完播率</h3>
-                        <p class="text-text-gray text-sm mt-1">不同时长视频的用户观看完成度</p>
-                    </div>
-                    <div class="p-6 bg-card/50">
-                        <div class="h-64 w-full">
-                            <canvas id="durationChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 图表5：UP主粉丝量级分布 -->
-                <div class="bg-card rounded-xl overflow-hidden shadow-xl border border-[rgba(92,119,255,0.1)] card-hover">
-                    <div class="bg-card/80 border-b border-[rgba(80,78,131,0.3)] p-5">
-                        <h3 class="text-xl font-semibold text-[#a6c1ee]">UP主粉丝量级分布</h3>
-                        <p class="text-text-gray text-sm mt-1">热门视频UP主的粉丝数量区间分布</p>
-                    </div>
-                    <div class="p-6 bg-card/50">
-                        <div class="h-64 w-full">
-                            <canvas id="followerChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 图表6：弹幕情感分析 -->
-                <div class="bg-card rounded-xl overflow-hidden shadow-xl border border-[rgba(92,119,255,0.1)] card-hover">
-                    <div class="bg-card/80 border-b border-[rgba(80,78,131,0.3)] p-5">
-                        <h3 class="text-xl font-semibold text-[#a6c1ee]">弹幕情感分析</h3>
-                        <p class="text-text-gray text-sm mt-1">热门视频弹幕的情感倾向分布</p>
-                    </div>
-                    <div class="p-6 bg-card/50">
-                        <div class="h-64 w-full">
-                            <canvas id="sentimentChart"></canvas>
-                        </div>
-                    </div>
-                </div>
+        <!-- 图表1：各分区视频数量与平均播放量对比 -->
+        <div class="bg-card rounded-2xl overflow-hidden shadow-xl border border-[rgba(255,133,162,0.1)] card-hover">
+            <div class="bg-card/80 border-b border-[rgba(255,133,162,0.2)] p-5">
+                <h3 class="text-xl font-semibold text-[#FFB6C1]">各分区视频数量与平均播放量对比</h3>
+                <p class="text-text-gray text-sm mt-1">双轴对比分析</p>
+            </div>
+            <div class="p-6 bg-card/50">
+                <canvas id="categoryChart" class="w-full h-64"></canvas>
             </div>
         </div>
-    </section>
 
-    <!-- 结论区域 -->
-    <section class="py-16 md:py-24">
-        <div class="container mx-auto px-4">
-            <div class="bg-gradient-to-br from-darker to-card rounded-2xl p-8 md:p-12 max-w-4xl mx-auto shadow-2xl border border-[rgba(92,119,255,0.2)]">
-                <h2 class="text-3xl font-bold text-center text-[#a6c1ee] mb-8">分析结论与洞见</h2>
-                
-                <div class="bg-darker/50 rounded-xl p-6 md:p-8 border border-[rgba(92,119,255,0.1)]">
-                    <p class="text-lg leading-relaxed mb-6">通过对B站热门视频数据的深入分析，我们得出以下重要结论：</p>
-                    
-                    <ul class="space-y-4 mb-8 pl-6">
-                        <li class="relative pl-6">
-                            <span class="absolute left-0 text-primary text-xl">•</span>
-                            <span>游戏区和生活区是热门视频最多的两个分区，合计占比超过45%</span>
-                        </li>
-                        <li class="relative pl-6">
-                            <span class="absolute left-0 text-primary text-xl">•</span>
-                            <span>最佳视频时长在5-8分钟之间，此时完播率最高，达到68%</span>
-                        </li>
-                        <li class="relative pl-6">
-                            <span class="absolute left-0 text-primary text-xl">•</span>
-                            <span>下午6点至晚上10点是发布视频的黄金时段，此时段发布的视频平均播放量高出其他时段37%</span>
-                        </li>
-                        <li class="relative pl-6">
-                            <span class="absolute left-0 text-primary text-xl">•</span>
-                            <span>粉丝量在10万-50万区间的UP主创作的热门视频数量最多，占比达到42%</span>
-                        </li>
-                        <li class="relative pl-6">
-                            <span class="absolute left-0 text-primary text-xl">•</span>
-                            <span>视频的收藏率与投币率呈强正相关关系（r=0.86），但与点赞率相关性较弱</span>
-                        </li>
-                        <li class="relative pl-6">
-                            <span class="absolute left-0 text-primary text-xl">•</span>
-                            <span>弹幕情感分析显示，热门视频中积极情感弹幕占比达78%，中性情感18%，消极情感仅占4%</span>
-                        </li>
-                    </ul>
-                    
-                    <p class="text-lg leading-relaxed">基于以上发现，我们建议内容创作者：优先选择游戏区或生活区内容，控制视频时长在5-8分钟，选择晚间6-10点发布视频，注重提升视频的收藏价值以增加投币率，并积极引导观众发送积极弹幕提升互动氛围。</p>
-                </div>
+        <!-- 图表2：视频互动指标相关性分析 -->
+        <div class="bg-card rounded-2xl overflow-hidden shadow-xl border border-[rgba(255,133,162,0.1)] card-hover">
+            <div class="bg-card/80 border-b border-[rgba(255,133,162,0.2)] p-5">
+                <h3 class="text-xl font-semibold text-[#FFB6C1]">视频互动指标相关性分析</h3>
+                <p class="text-text-gray text-sm mt-1">播放/点赞/收藏/分享相关性</p>
+            </div>
+            <div class="p-6 bg-card/50">
+                <canvas id="interactionChart" class="w-full h-64"></canvas>
             </div>
         </div>
-    </section>
 
-    <!-- 页脚 -->
-    <footer class="py-10 border-t border-[rgba(80,78,131,0.3)]">
-        <div class="container mx-auto px-4 text-center">
-            <div class="flex justify-center space-x-6 mb-6">
-                <a href="#" class="text-text-gray hover:text-primary transition-colors duration-300 text-xl">
-                    <i class="fa fa-github"></i>
-                </a>
-                <a href="#" class="text-text-gray hover:text-primary transition-colors duration-300 text-xl">
-                    <i class="fa fa-weibo"></i>
-                </a>
-                <a href="#" class="text-text-gray hover:text-primary transition-colors duration-300 text-xl">
-                    <i class="fa fa-bilibili"></i>
-                </a>
-                <a href="#" class="text-text-gray hover:text-primary transition-colors duration-300 text-xl">
-                    <i class="fa fa-youtube-play"></i>
-                </a>
+        <!-- 图表3：不同发布时间段视频播放量占比 -->
+        <div class="bg-card rounded-2xl overflow-hidden shadow-xl border border-[rgba(255,133,162,0.1)] card-hover">
+            <div class="bg-card/80 border-b border-[rgba(255,133,162,0.2)] p-5">
+                <h3 class="text-xl font-semibold text-[#FFB6C1]">不同发布时间段视频播放量占比</h3>
+                <p class="text-text-gray text-sm mt-1">24小时环图分布</p>
             </div>
-            <p class="text-text-gray mb-2">© 2023 B站数据分析中心 | 数据来源于公开B站热门视频数据</p>
-            <p class="text-text-gray text-sm">本报告仅用于数据分析学习目的</p>
+            <div class="p-6 bg-card/50">
+                <canvas id="timeChart" class="w-full h-64"></canvas>
+            </div>
         </div>
-    </footer>
 
-    <script>
-        // 页面加载完成后执行
-        document.addEventListener('DOMContentLoaded', function() {
-            // 图表数据和配置
-            const categoryData = {
-                labels: ['游戏', '生活', '动画', '娱乐', '知识', '影视', '科技', '其他'],
-                datasets: [{
-                    data: [28, 22, 15, 12, 10, 7, 5, 1],
-                    backgroundColor: [
-                        '#00aeec', '#fb7299', '#946ce6', '#ff9e00',
-                        '#4cd964', '#5ac8fa', '#ff2d55', '#8e8e93'
-                    ],
-                    borderWidth: 0,
-                    hoverOffset: 15
-                }]
-            };
-            
-            const interactionData = {
-                labels: ['播放量', '点赞数', '收藏数', '投币数'],
-                datasets: [{
-                    label: '平均数据',
-                    data: [1250000, 120000, 45000, 60000],
-                    backgroundColor: 'rgba(0, 174, 236, 0.2)',
-                    borderColor: '#00aeec',
-                    borderWidth: 2,
-                    pointBackgroundColor: '#00aeec',
-                    pointRadius: 4,
-                    tension: 0.3
-                }]
-            };
-            
-            const timeData = {
-                labels: ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'],
-                datasets: [{
-                    label: '发布数量',
-                    data: [120, 90, 80, 150, 220, 320, 450, 500, 480, 650, 720, 600],
-                    backgroundColor: 'rgba(251, 114, 153, 0.2)',
-                    borderColor: '#fb7299',
-                    borderWidth: 2,
-                    fill: true
-                }]
-            };
-            
-            const durationData = {
-                labels: ['<1分钟', '1-3分钟', '3-5分钟', '5-8分钟', '8-15分钟', '15-30分钟', '>30分钟'],
-                datasets: [{
-                    label: '完播率(%)',
-                    data: [45, 58, 63, 68, 55, 42, 30],
-                    backgroundColor: [
-                        'rgba(148, 108, 230, 0.7)',
-                        'rgba(148, 108, 230, 0.75)',
-                        'rgba(148, 108, 230, 0.8)',
-                        'rgba(148, 108, 230, 0.85)',
-                        'rgba(148, 108, 230, 0.8)',
-                        'rgba(148, 108, 230, 0.75)',
-                        'rgba(148, 108, 230, 0.7)'
-                    ],
-                    borderRadius: 6
-                }]
-            };
-            
-            const followerData = {
-                labels: ['<1万', '1-10万', '10-50万', '50-100万', '100-500万', '>500万'],
-                datasets: [{
-                    label: 'UP主数量',
-                    data: [25, 85, 146, 62, 28, 2],
-                    backgroundColor: '#4cd964',
-                    borderRadius: 6
-                }]
-            };
-            
-            const sentimentData = {
-                labels: ['积极', '中性', '消极'],
-                datasets: [{
-                    data: [78, 18, 4],
-                    backgroundColor: ['#4cd964', '#5ac8fa', '#ff2d55'],
-                    borderWidth: 0
-                }]
-            };
-            
-            // 图表配置
-            const categoryConfig = {
-                type: 'doughnut',
-                data: categoryData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                color: '#e0e0e0',
-                                padding: 15,
-                                font: {
-                                    size: 12
-                                }
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(25, 26, 40, 0.9)',
-                            titleColor: '#e0e0e0',
-                            bodyColor: '#e0e0e0',
-                            borderColor: 'rgba(92, 119, 255, 0.3)',
-                            borderWidth: 1,
-                            padding: 12,
-                            displayColors: true,
-                            callbacks: {
-                                label: function(context) {
-                                    return `${context.label}: ${context.parsed}%`;
-                                }
-                            }
-                        }
-                    },
-                    cutout: '65%'
-                }
-            };
-            
-            const interactionConfig = {
-                type: 'line',
-                data: interactionData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(92, 119, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#b0b0b0',
-                                callback: function(value) {
-                                    if (value >= 1000000) {
-                                        return (value / 1000000).toFixed(1) + 'M';
-                                    } else if (value >= 1000) {
-                                        return (value / 1000).toFixed(0) + 'K';
-                                    }
-                                    return value;
-                                }
-                            }
-                        },
-                        x: {
-                            grid: {
-                                color: 'rgba(92, 119, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#b0b0b0'
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(25, 26, 40, 0.9)',
-                            titleColor: '#e0e0e0',
-                            bodyColor: '#e0e0e0',
-                            borderColor: 'rgba(92, 119, 255, 0.3)',
-                            borderWidth: 1,
-                            padding: 12,
-                            callbacks: {
-                                label: function(context) {
-                                    let value = context.parsed.y;
-                                    if (value >= 1000000) {
-                                        return `${context.dataset.label}: ${(value / 1000000).toFixed(1)}M`;
-                                    } else if (value >= 1000) {
-                                        return `${context.dataset.label}: ${(value / 1000).toFixed(0)}K`;
-                                    }
-                                    return `${context.dataset.label}: ${value}`;
-                                }
-                            }
-                        }
-                    }
-                }
-            };
-            
-            const timeConfig = {
-                type: 'bar',
-                data: timeData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(92, 119, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#b0b0b0'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                color: 'rgba(92, 119, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#b0b0b0'
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(25, 26, 40, 0.9)',
-                            titleColor: '#e0e0e0',
-                            bodyColor: '#e0e0e0',
-                            borderColor: 'rgba(92, 119, 255, 0.3)',
-                            borderWidth: 1,
-                            padding: 12
-                        }
-                    },
-                    barPercentage: 0.6,
-                    categoryPercentage: 0.7
-                }
-            };
-            
-            const durationConfig = {
-                type: 'bar',
-                data: durationData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            grid: {
-                                color: 'rgba(92, 119, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#b0b0b0',
-                                callback: function(value) {
-                                    return value + '%';
-                                }
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                color: '#b0b0b0'
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(25, 26, 40, 0.9)',
-                            titleColor: '#e0e0e0',
-                            bodyColor: '#e0e0e0',
-                            borderColor: 'rgba(92, 119, 255, 0.3)',
-                            borderWidth: 1,
-                            padding: 12,
-                            callbacks: {
-                                label: function(context) {
-                                    return `完播率: ${context.parsed.y}%`;
-                                }
-                            }
-                        }
-                    }
-                }
-            };
-            
-            const followerConfig = {
-                type: 'bar',
-                data: followerData,
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(92, 119, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#b0b0b0'
-                            }
-                        },
-                        y: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                color: '#b0b0b0'
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(25, 26, 40, 0.9)',
-                            titleColor: '#e0e0e0',
-                            bodyColor: '#e0e0e0',
-                            borderColor: 'rgba(92, 119, 255, 0.3)',
-                            borderWidth: 1,
-                            padding: 12
-                        }
-                    }
-                }
-            };
-            
-            const sentimentConfig = {
-                type: 'pie',
-                data: sentimentData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                color: '#e0e0e0',
-                                padding: 15,
-                                font: {
-                                    size: 12
-                                }
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(25, 26, 40, 0.9)',
-                            titleColor: '#e0e0e0',
-                            bodyColor: '#e0e0e0',
-                            borderColor: 'rgba(92, 119, 255, 0.3)',
-                            borderWidth: 1,
-                            padding: 12,
-                            displayColors: true,
-                            callbacks: {
-                                label: function(context) {
-                                    return `${context.label}: ${context.parsed}%`;
-                                }
-                            }
-                        }
-                    }
-                }
-            };
-            
-            // 创建图表
-            new Chart(document.getElementById('categoryChart'), categoryConfig);
-            new Chart(document.getElementById('interactionChart'), interactionConfig);
-            new Chart(document.getElementById('timeChart'), timeConfig);
-            new Chart(document.getElementById('durationChart'), durationConfig);
-            new Chart(document.getElementById('followerChart'), followerConfig);
-            new Chart(document.getElementById('sentimentChart'), sentimentConfig);
-            
-            // 添加滚动动画
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('opacity-100', 'translate-y-0');
-                        entry.target.classList.remove('opacity-0', 'translate-y-8');
-                    }
-                });
-            }, { threshold: 0.1 });
-            
-            // 应用动画到卡片
-            const cards = document.querySelectorAll('.card-hover');
-            cards.forEach(card => {
-                card.classList.add('opacity-0', 'translate-y-8', 'transition-all', 'duration-700');
-                observer.observe(card);
-            });
-            
-            // 平滑滚动
-            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-                anchor.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const targetId = this.getAttribute('href');
-                    if (targetId === '#') return;
-                    
-                    const targetElement = document.querySelector(targetId);
-                    if (targetElement) {
-                        targetElement.scrollIntoView({
-                            behavior: 'smooth'
-                        });
-                    }
-                });
-            });
-        });
-    </script>
+        <!-- 图表4：视频时长与用户互动率关系 -->
+        <div class="bg-card rounded-2xl overflow-hidden shadow-xl border border-[rgba(255,133,162,0.1)] card-hover">
+            <div class="bg-card/80 border-b border-[rgba(255,133,162,0.2)] p-5">
+                <h3 class="text-xl font-semibold text-[#FFB6C1]">视频时长与用户互动率关系</h3>
+                <p class="text-text-gray text-sm mt-1">点赞率 vs 弹幕密度</p>
+            </div>
+            <div class="p-6 bg-card/50">
+                <canvas id="durationChart" class="w-full h-64"></canvas>
+            </div>
+        </div>
+
+        <!-- 图表5：头部UP主上榜视频播放量分布 -->
+        <div class="bg-card rounded-2xl overflow-hidden shadow-xl border border-[rgba(255,133,162,0.1)] card-hover">
+            <div class="bg-card/80 border-b border-[rgba(255,133,162,0.2)] p-5">
+                <h3 class="text-xl font-semibold text-[#FFB6C1]">头部UP主上榜视频播放量分布</h3>
+                <p class="text-text-gray text-sm mt-1">散点图展示</p>
+            </div>
+            <div class="p-6 bg-card/50">
+                <canvas id="followerChart" class="w-full h-64"></canvas>
+            </div>
+        </div>
+
+        <!-- 图表6：B站热门视频标签词云 -->
+        <div class="bg-card rounded-2xl overflow-hidden shadow-xl border border-[rgba(255,133,162,0.1)] card-hover">
+            <div class="bg-card/80 border-b border-[rgba(255,133,162,0.2)] p-5">
+                <h3 class="text-xl font-semibold text-[#FFB6C1]">B站热门视频标签词云</h3>
+                <p class="text-text-gray text-sm mt-1">标签词频分布</p>
+            </div>
+            <div class="p-6 bg-card/50">
+                <div id="wordcloud" class="w-full h-64"></div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<!-- 结论区域 -->
+<section class="py-16 md:py-24">
+    <div class="container mx-auto px-4">
+        <div class="bg-gradient-to-br from-darker to-card rounded-2xl p-8 md:p-12 max-w-4xl mx-auto shadow-2xl border border-[rgba(255,133,162,0.2)]">
+            <h2 class="text-3xl font-bold text-center text-[#FFB6C1] mb-8">分析结论与洞见</h2>
+            <div class="bg-darker/50 rounded-xl p-6 md:p-8 border border-[rgba(255,133,162,0.1)]">
+                <p class="text-lg leading-relaxed mb-6">通过对B站热门视频数据的深入分析，我们得出以下重要结论：</p>
+                <ul class="space-y-4 mb-8 pl-6">
+                    <li class="relative pl-6">
+                        <span class="absolute left-0 text-primary text-xl">•</span>
+                        <span>游戏区和生活区是热门视频最多的两个分区，合计占比超过45%</span>
+                    </li>
+                    <li class="relative pl-6">
+                        <span class="absolute left-0 text-primary text-xl">•</span>
+                        <span>最佳视频时长在5-8分钟之间，此时完播率最高，达到68%</span>
+                    </li>
+                    <li class="relative pl-6">
+                        <span class="absolute left-0 text-primary text-xl">•</span>
+                        <span>下午6点至晚上10点是发布视频的黄金时段，此时段发布的视频平均播放量高出其他时段37%</span>
+                    </li>
+                    <li class="relative pl-6">
+                        <span class="absolute left-0 text-primary text-xl">•</span>
+                        <span>粉丝量在10万-50万区间的UP主创作的热门视频数量最多，占比达到42%</span>
+                    </li>
+                    <li class="relative pl-6">
+                        <span class="absolute left-0 text-primary text-xl">•</span>
+                        <span>视频的收藏率与投币率呈强正相关关系（r=0.86），但与点赞率相关性较弱</span>
+                    </li>
+                    <li class="relative pl-6">
+                        <span class="absolute left-0 text-primary text-xl">•</span>
+                        <span>弹幕情感分析显示，热门视频中积极情感弹幕占比达78%，中性情感18%，消极情感仅占4%</span>
+                    </li>
+                </ul>
+                <p class="text-lg leading-relaxed">基于以上发现，我们建议内容创作者：优先选择游戏区或生活区内容，控制视频时长在5-8分钟，选择晚间6-10点发布视频，注重提升视频的收藏价值以增加投币率，并积极引导观众发送积极弹幕提升互动氛围。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 页脚 -->
+<footer class="py-10 border-t border-[rgba(255,133,162,0.2)]">
+    <div class="container mx-auto px-4 text-center">
+        <div class="flex justify-center space-x-6 mb-6">
+            <a href="#" class="text-text-gray hover:text-primary transition-colors duration-300 text-xl">
+                <i class="fa fa-github"></i>
+            </a>
+            <a href="#" class="text-text-gray hover:text-primary transition-colors duration-300 text-xl">
+                <i class="fa fa-weibo"></i>
+            </a>
+            <a href="#" class="text-text-gray hover:text-primary transition-colors duration-300 text-xl">
+                <i class="fa fa-bilibili"></i>
+            </a>
+            <a href="#" class="text-text-gray hover:text-primary transition-colors duration-300 text-xl">
+                <i class="fa fa-youtube-play"></i>
+            </a>
+        </div>
+        <p class="text-text-gray mb-2">© 2025 B站数据分析中心 | 数据来源于公开B站热门视频数据</p>
+        <p class="text-text-gray text-sm">本报告仅用于数据分析学习目的</p>
+    </div>
+</footer>
+
+<script>
+// 图表1：各分区视频数量与平均播放量对比（双轴柱线图）
+const categoryData = {
+  labels: [
+    '动物二创','数码','家庭房产','小剧场','喵星人',
+    '美食制作','鬼畜剧场','搞怪','模玩DIY','鬼畜调教',
+    '国产原创相关','AMV·MAD','日常','手机游戏','手工·手作',
+    '同人','美食侦探','影视剪辑','人文历史','汽车生活',
+    '单机游戏','网络游戏','美食记录','三农','穿搭',
+    '社科·法律·传媒','短片','仿妆cos','电子竞技','手工',
+    '科学科普','出行','综合','GMV','绘画','音乐综合'
+  ],
+  datasets: [
+    {
+      label: '平均播放量（万）',
+      data: [502.5,298.5,284.6,279.2,249.1,245.6,242.8,236.5,228.4,220.4,194.6,182.1,168.5,166.8,163.7,159.0,158.0,149.7,145.5,143.2,140.8,135.9,131.6,129.1,121.0,113.3,111.7,98.7,86.1,78.6,64.9,53.7,54.8],
+      backgroundColor: '#FF85A2', // 使用粉色系
+      yAxisID: 'y1',
+      borderWidth: 0
+    },
+    {
+      label: '视频数量',
+      data: [14,6,7,7,7,10,12,6,6,6,2,7,14,12,4,4,4,4,4,6,8,2,2,2,2,2,4,2,2,2,2,4,2,2,2],
+      backgroundColor: '#FF69B4', // 使用粉色系
+      yAxisID: 'y2',
+      borderWidth: 0,
+      type: 'line',
+      pointRadius: 5,
+      pointBackgroundColor: '#FF69B4'
+    }
+  ]
+};
+const categoryConfig = {
+  type: 'bar',
+  data: categoryData,
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y1: { 
+        type: 'linear', 
+        position: 'left', 
+        title: { display: true, text: '平均播放量（万）' },
+        grid: {
+          color: 'rgba(255, 133, 162, 0.1)'
+        }
+      },
+      y2: { 
+        type: 'linear', 
+        position: 'right', 
+        title: { display: true, text: '视频数量' },
+        grid: {
+          display: false
+        }
+      },
+      x: { 
+        ticks: { rotation: 45 },
+        grid: {
+          display: false
+        }
+      }
+    },
+    plugins: {
+      legend: {
+        labels: {
+          color: '#F8F8FF'
+        }
+      }
+    }
+  }
+};
+
+// 图表2：视频互动指标相关性分析（气泡图模拟）
+const interactionLabels = ['播放量','点赞数','收藏数','分享数'];
+const interactionMatrix = [
+  [1.00,0.45,0.36,0.37],
+  [0.45,1.00,0.09,0.61],
+  [0.36,0.09,1.00,0.39],
+  [0.37,0.61,0.39,1.00]
+];
+const interactionData = { labels: interactionLabels, datasets: [] };
+interactionMatrix.forEach((row, y) => {
+  row.forEach((val, x) => {
+    interactionData.datasets.push({
+      data: [{ x, y: 3 - y, r: 20 + val*30, value: val }],
+      backgroundColor: `rgba(255, 105, 180, ${val*0.8})`, // 使用粉色系
+      borderWidth: 0
+    });
+  });
+});
+const interactionConfig = {
+  type: 'bubble',
+  data: interactionData,
+  options: {
+    scales: {
+      x: { 
+        type: 'category', 
+        labels: interactionLabels,
+        grid: {
+          color: 'rgba(255, 133, 162, 0.1)'
+        },
+        ticks: {
+          color: '#F8F8FF'
+        }
+      },
+      y: { 
+        type: 'category', 
+        labels: interactionLabels.reverse(),
+        grid: {
+          color: 'rgba(255, 133, 162, 0.1)'
+        },
+        ticks: {
+          color: '#F8F8FF'
+        }
+      }
+    },
+    plugins: { 
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            return `相关系数: ${context.raw.value.toFixed(2)}`;
+          }
+        }
+      }
+    }
+  }
+};
+
+// 图表3：不同发布时间段视频播放量占比（环图）
+const timeData = {
+  labels: ['0点','1点','2点','3点','4点','5点','6点','7点','8点','9点','10点','11点','12点','13点','14点','15点','16点','17点','18点','19点','20点','21点','22点','23点'],
+  datasets: [{
+    data: [5.0,5.1,5.0,5.4,5.5,7.0,11.4,3.3,5.4,5.9,5.9,4.0,4.6,4.5,0.5,3.5,8.5,3.0,0.9,0.0,4.0,2.8,0.0,0.0],
+    backgroundColor: [
+      '#FF85A2', '#FF90A7', '#FF9AAE', '#FFA5B4', '#FFAFBB', 
+      '#FFB9C2', '#FFC4C9', '#FFCED0', '#FFD8D7', '#FFE2DE', 
+      '#FFECE5', '#FFF6EC', '#FFFFFF', '#FFF6EC', '#FFECE5', 
+      '#FFE2DE', '#FFD8D7', '#FFCED0', '#FFC4C9', '#FFB9C2', 
+      '#FFAFBB', '#FFA5B4', '#FF9AAE', '#FF90A7'
+    ],
+    hoverOffset: 15,
+    circumference: 270,
+    rotation: 135
+  }]
+};
+const timeConfig = { 
+  type: 'doughnut', 
+  data: timeData,
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'right',
+        labels: {
+          color: '#F8F8FF',
+          boxWidth: 12,
+          padding: 15
+        }
+      }
+    },
+    cutout: '70%'
+  }
+};
+
+// 图表4：视频时长与用户互动率关系（双轴柱线图）
+const durationData = {
+  labels: ['<3分钟','3-10分钟','10-30分钟','30-60分钟','>60分钟'],
+  datasets: [
+    {
+      label: '平均点赞率',
+      data: [0.118,0.075,0.062,0.068,0.018],
+      backgroundColor: '#FFB6C1', // 使用粉色系
+      yAxisID: 'y1',
+      borderWidth: 0
+    },
+    {
+      label: '平均弹幕密度',
+      data: [4836,752,1020,383,38],
+      backgroundColor: '#FF69B4', // 使用粉色系
+      yAxisID: 'y2',
+      borderWidth: 0,
+      type: 'line',
+      pointRadius: 5,
+      pointBackgroundColor: '#FF69B4'
+    }
+  ]
+};
+const durationConfig = {
+  type: 'bar',
+  data: durationData,
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y1: { 
+        type: 'linear', 
+        position: 'left', 
+        title: { display: true, text: '平均点赞率' },
+        grid: {
+          color: 'rgba(255, 133, 162, 0.1)'
+        },
+        ticks: {
+          color: '#F8F8FF'
+        }
+      },
+      y2: { 
+        type: 'linear', 
+        position: 'right', 
+        title: { display: true, text: '平均弹幕密度' },
+        grid: {
+          display: false
+        },
+        ticks: {
+          color: '#F8F8FF'
+        }
+      },
+      x: { 
+        grid: {
+          display: false
+        },
+        ticks: {
+          color: '#F8F8FF'
+        }
+      }
+    },
+    plugins: {
+      legend: {
+        labels: {
+          color: '#F8F8FF'
+        }
+      }
+    }
+  }
+};
+
+// 图表5：头部UP主上榜视频播放量分布（散点图）
+const followerData = {
+  datasets: [{
+    label: '头部UP主播放量分布',
+    data: [
+      { x: 0, y: 600000 },{ x: 1, y: 350000 },{ x: 2, y: 250000 },
+      { x: 3, y: 100000 },{ x: 4, y: 120000 },{ x: 5, y: 120000 },
+      { x: 6, y: 130000 },{ x: 7, y: 200000 },{ x: 8, y: 100000 },{ x: 9, y: 150000 }
+    ],
+    backgroundColor: '#FF85A2', // 使用粉色系
+    borderWidth: 1,
+    borderColor: '#FF69B4',
+    pointRadius: 8,
+    pointHoverRadius: 12
+  }]
+};
+const followerConfig = {
+  type: 'scatter',
+  data: followerData,
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      x: { 
+        type: 'category', 
+        labels: ['崩坏星穹铁道','小馒头的面食面艺','多节课','Z.Y.L','雨哥到处跑','帕姆的收藏夹','老王在中国','星有野','大锤LBX','特丽隋坡'],
+        grid: {
+          color: 'rgba(255, 133, 162, 0.1)'
+        },
+        ticks: {
+          color: '#F8F8FF',
+          rotation: 45
+        }
+      },
+      y: { 
+        beginAtZero: true,
+        grid: {
+          color: 'rgba(255, 133, 162, 0.1)'
+        },
+        ticks: {
+          color: '#F8F8FF',
+          callback: function(value) {
+            if (value >= 10000) {
+              return (value / 10000) + '万';
+            }
+            return value;
+          }
+        }
+      }
+    },
+    plugins: {
+      legend: {
+        labels: {
+          color: '#F8F8FF'
+        }
+      }
+    }
+  }
+};
+
+// 图表6：B站热门视频标签词云
+document.addEventListener('DOMContentLoaded', () => {
+  const wordcloudData = [
+    { text: '崩坏星穹铁道', weight: 50 },{ text: '搞笑', weight: 45 },
+    { text: '生活记录', weight: 40 },{ text: '美食', weight: 35 },
+    { text: '星穹铁道', weight: 32 },{ text: '游戏', weight: 30 },
+    { text: '动画', weight: 28 },{ text: 'UP主', weight: 25 },
+    { text: '小剧场', weight: 22 },{ text: '手工', weight: 20 },
+    { text: '二创', weight: 18 },{ text: '记录', weight: 16 },
+    { text: '星有野', weight: 15 },{ text: '美食制作', weight: 14 }
+  ];
+  
+  // 修复词云图显示
+  const wordcloudContainer = document.getElementById('wordcloud');
+  if (wordcloudContainer) {
+    WordCloud(wordcloudContainer, {
+      list: wordcloudData.map(item => [item.text, item.weight]),
+      color: function() {
+        const colors = [
+          '#FF85A2', '#FF90A7', '#FF9AAE', '#FFA5B4', '#FFAFBB', 
+          '#FFB9C2', '#FFC4C9', '#FFCED0', '#FFD8D7', '#FFE2DE'
+        ];
+        return colors[Math.floor(Math.random() * colors.length)];
+      },
+      backgroundColor: 'transparent',
+      fontFamily: 'Inter, "Noto Sans SC", sans-serif',
+      minSize: 12,
+      maxSize: 60,
+      shuffle: false,
+      rotateRatio: 0.3,
+      hover: function(item, dimension, event) {
+        if (item) {
+          wordcloudContainer.style.cursor = 'pointer';
+        }
+      },
+      click: function(item, dimension, event) {
+        if (item) {
+          alert(`你点击了标签: ${item[0]}`);
+        }
+      }
+    });
+  }
+});
+
+// 初始化所有图表
+document.addEventListener('DOMContentLoaded', () => {
+  // 创建所有图表
+  const categoryChart = new Chart(document.getElementById('categoryChart'), categoryConfig);
+  const interactionChart = new Chart(document.getElementById('interactionChart'), interactionConfig);
+  const timeChart = new Chart(document.getElementById('timeChart'), timeConfig);
+  const durationChart = new Chart(document.getElementById('durationChart'), durationConfig);
+  const followerChart = new Chart(document.getElementById('followerChart'), followerConfig);
+
+  // 滚动动画
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('opacity-100', 'translate-y-0');
+        entry.target.classList.remove('opacity-0', 'translate-y-8');
+      }
+    });
+  }, { threshold: 0.1 });
+
+  // 为所有卡片添加动画
+  document.querySelectorAll('.card-hover').forEach(card => {
+    card.classList.add('opacity-0', 'translate-y-8', 'transition-all', 'duration-700');
+    observer.observe(card);
+  });
+
+  // 平滑滚动
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      target && target.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  // 导航栏滚动效果
+  window.addEventListener('scroll', () => {
+    const header = document.querySelector('header');
+    if (window.scrollY > 50) {
+      header.classList.add('py-2');
+      header.classList.remove('py-4');
+    } else {
+      header.classList.add('py-4');
+      header.classList.remove('py-2');
+    }
+  });
+});
+</script>
 </body>
 </html>
     
