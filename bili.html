@@ -15,6 +15,23 @@
       theme: {
         extend: {
           colors: {
+            // 👇 替换为淡粉色系（根据喜好调整色值）
+            primary: '#FFD1DC',   // 浅粉（主色）
+            secondary: '#FFB6C1', // 粉（辅助色）
+            accent: '#FF69B4',    // 深粉（强调色）
+            dark: '#444',         // 深色文字（适配粉色背景）
+            light: '#FFF5F7',     // 浅粉背景（容器用）
+          },
+          fontFamily: { inter: ['Inter', 'sans-serif'] },
+        },
+      }
+    }
+  </script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
             primary: '#165DFF',
             secondary: '#36CFC9',
             accent: '#FF7D00',
@@ -47,6 +64,19 @@
         transform: translateY(-5px);
       }
     }
+  </style>
+  <!-- 👇 新增背景图样式 -->
+  <style>
+    body {
+      /* 替换为你的背景图链接（本地/在线均可） */
+      background-image: url('bg1.jpg'); 
+      background-repeat: no-repeat;   /* 不重复 */
+      background-size: cover;         /* 覆盖全屏 */
+      background-attachment: fixed;   /* 固定背景，滚动不跟随 */
+    }
+    /* 👇 可选：让卡片/导航半透明，突出背景图 */
+    .card-shadow { background-color: rgba(255, 255, 255, 0.9); } /* 卡片半透明白 */
+    .nav-shadow  { background-color: rgba(255, 245, 247, 0.9); } /* 导航栏半透浅粉 */
   </style>
 </head>
 
