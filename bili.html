@@ -1,72 +1,707 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <meta charset="utf-8">
-    <title>B站热门视频数据分析</title>
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-    <style>
-        .chart-container {
-            width: 100%;
-            height: 600px;
-            margin: 20px auto;
-            border: 1px solid #eee;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        h2 {
-            text-align: center;
-            margin-top: 40px;
-            color: #333;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>B站热榜视频数据分析</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.0/dist/echarts.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- 配置Tailwind自定义样式 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#165DFF',
+            secondary: '#36CFC9',
+            accent: '#FF7D00',
+            dark: '#1D2129',
+            light: '#F7F8FA'
+          },
+          fontFamily: {
+            inter: ['Inter', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+  
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .card-shadow {
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+      }
+      .nav-shadow {
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.08);
+      }
+      .chart-container {
+        transition: all 0.3s ease;
+      }
+      .chart-container:hover {
+        transform: translateY(-5px);
+      }
+    }
+  </style>
 </head>
-<body>
-    <h1 style="text-align:center;">B站热门视频数据分析报告</h1>
-    
-    <h2>分区分布分析</h2>
-    <div id="partition-chart" class="chart-container"></div>
-    
-    <h2>时长与互动关系</h2>
-    <div id="duration-chart" class="chart-container"></div>
-    
-    <h2>头部UP主影响力分析</h2>
-    <div id="up-chart" class="chart-container"></div>
-    
-    <h2>发布时间分析</h2>
-    <div id="time-chart" class="chart-container"></div>
-    
-    <h2>互动指标相关性分析</h2>
-    <div id="correlation-chart" class="chart-container"></div>
-    
-    <h2>热门标签词云</h2>
-    <div id="wordcloud-chart" class="chart-container"></div>
 
-    <script>
-        // 初始化图表
-        const partitionChart = echarts.init(document.getElementById('partition-chart'));
-        const durationChart = echarts.init(document.getElementById('duration-chart'));
-        const upChart = echarts.init(document.getElementById('up-chart'));
-        const timeChart = echarts.init(document.getElementById('time-chart'));
-        const correlationChart = echarts.init(document.getElementById('correlation-chart'));
-        const wordcloudChart = echarts.init(document.getElementById('wordcloud-chart'));
+<body class="font-inter bg-light text-dark antialiased">
+  <!-- 导航栏 -->
+  <nav id="main-nav" class="fixed w-full bg-white/90 backdrop-blur-md z-50 nav-shadow transition-all duration-300">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center">
+          <a href="#" class="flex items-center space-x-2">
+            <i class="fa fa-bar-chart text-primary text-2xl"></i>
+            <span class="text-xl font-bold text-primary">B站数据看板</span>
+          </a>
+        </div>
         
-        // 设置图表配置项
-        partitionChart.setOption(/* 分区分析配置 */);
-        durationChart.setOption(/* 时长互动配置 */);
-        upChart.setOption(/* UP主分析配置 */);
-        timeChart.setOption(/* 时间分析配置 */);
-        correlationChart.setOption(/* 相关性配置 */);
-        wordcloudChart.setOption(/* 词云配置 */);
+        <!-- 桌面导航 -->
+        <div class="hidden md:flex items-center space-x-8">
+          <a href="#partition" class="text-dark hover:text-primary transition-colors font-medium">分区分析</a>
+          <a href="#duration" class="text-dark hover:text-primary transition-colors font-medium">时长互动</a>
+          <a href="#upowners" class="text-dark hover:text-primary transition-colors font-medium">UP主分析</a>
+          <a href="#publishtime" class="text-dark hover:text-primary transition-colors font-medium">发布时间</a>
+          <a href="#correlation" class="text-dark hover:text-primary transition-colors font-medium">互动相关</a>
+          <a href="#tagcloud" class="text-dark hover:text-primary transition-colors font-medium">标签词云</a>
+        </div>
         
-        // 响应式调整
-        window.addEventListener('resize', function() {
-            partitionChart.resize();
-            durationChart.resize();
-            upChart.resize();
-            timeChart.resize();
-            correlationChart.resize();
-            wordcloudChart.resize();
-        });
-    </script>
+        <!-- 移动端菜单按钮 -->
+        <div class="md:hidden flex items-center">
+          <button id="menu-toggle" class="text-dark hover:text-primary focus:outline-none">
+            <i class="fa fa-bars text-2xl"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 移动端导航菜单 -->
+    <div id="mobile-menu" class="md:hidden hidden bg-white border-t">
+      <div class="container mx-auto px-4 py-3 space-y-3">
+        <a href="#partition" class="block text-dark hover:text-primary transition-colors font-medium py-2">分区分析</a>
+        <a href="#duration" class="block text-dark hover:text-primary transition-colors font-medium py-2">时长互动</a>
+        <a href="#upowners" class="block text-dark hover:text-primary transition-colors font-medium py-2">UP主分析</a>
+        <a href="#publishtime" class="block text-dark hover:text-primary transition-colors font-medium py-2">发布时间</a>
+        <a href="#correlation" class="block text-dark hover:text-primary transition-colors font-medium py-2">互动相关</a>
+        <a href="#tagcloud" class="block text-dark hover:text-primary transition-colors font-medium py-2">标签词云</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 英雄区域 -->
+  <header class="pt-24 pb-16 md:pt-32 md:pb-24 bg-gradient-to-br from-primary/5 to-secondary/5">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-3xl mx-auto text-center">
+        <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold text-dark leading-tight mb-4">
+          B站热榜视频数据分析
+        </h1>
+        <p class="text-[clamp(1rem,2vw,1.25rem)] text-gray-600 mb-8">
+          深入分析B站全站热榜视频数据，探索内容趋势、用户互动和发布规律
+        </p>
+        <div class="flex flex-wrap justify-center gap-4">
+          <a href="#partition" class="bg-primary hover:bg-primary/90 text-white font-medium px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1">
+            查看分析 <i class="fa fa-arrow-down ml-2"></i>
+          </a>
+          <a href="#tagcloud" class="bg-white hover:bg-gray-50 text-primary border border-primary font-medium px-6 py-3 rounded-lg transition-all transform hover:-translate-y-1">
+            热门标签 <i class="fa fa-tags ml-2"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主要内容区 -->
+  <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+    <!-- 分区分析卡片 -->
+    <section id="partition" class="mb-16">
+      <div class="text-center mb-12">
+        <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark mb-3">视频分区分布分析</h2>
+        <div class="w-20 h-1 bg-primary mx-auto rounded-full"></div>
+      </div>
+      
+      <div class="bg-white rounded-2xl card-shadow p-6 md:p-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div class="lg:col-span-2">
+            <div class="chart-container bg-gray-50 rounded-xl p-4 h-[400px]">
+              <div id="partitionChart" class="w-full h-full"></div>
+            </div>
+          </div>
+          <div class="flex flex-col justify-center">
+            <h3 class="text-xl font-semibold mb-4 text-primary">关键发现</h3>
+            <ul class="space-y-3 text-gray-700">
+              <li class="flex items-start">
+                <i class="fa fa-check-circle text-secondary mt-1 mr-3"></i>
+                <span>手机游戏分区视频数量最多，达14个，占总热榜的14%</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fa fa-check-circle text-secondary mt-1 mr-3"></i>
+                <span>动物二创分区平均播放量最高，达502.5万次</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fa fa-check-circle text-secondary mt-1 mr-3"></i>
+                <span>电子竞技分区视频平均时长最长，达46.6分钟</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fa fa-check-circle text-secondary mt-1 mr-3"></i>
+                <span>搞笑分区视频数量排名第三，共10个，展现高内容活力</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- 时长互动卡片 -->
+    <section id="duration" class="mb-16">
+      <div class="text-center mb-12">
+        <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark mb-3">视频时长与互动关系</h2>
+        <div class="w-20 h-1 bg-primary mx-auto rounded-full"></div>
+      </div>
+      
+      <div class="bg-white rounded-2xl card-shadow p-6 md:p-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div class="lg:col-span-2">
+            <div class="chart-container bg-gray-50 rounded-xl p-4 h-[400px]">
+              <div id="durationChart" class="w-full h-full"></div>
+            </div>
+          </div>
+          <div class="flex flex-col justify-center">
+            <h3 class="text-xl font-semibold mb-4 text-primary">互动洞察</h3>
+            <ul class="space-y-3 text-gray-700">
+              <li class="flex items-start">
+                <i class="fa fa-line-chart text-accent mt-1 mr-3"></i>
+                <span>10-20分钟视频平均播放量最高，达189.9万次</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fa fa-line-chart text-accent mt-1 mr-3"></i>
+                <span>超60分钟视频平均点赞量最低，但播放量反而较高</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fa fa-line-chart text-accent mt-1 mr-3"></i>
+                <span>1-3分钟短视频平均弹幕数最高，互动性最强</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fa fa-line-chart text-accent mt-1 mr-3"></i>
+                <span>分享量随视频时长增加而递减，短视频更易传播</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- UP主分析卡片 -->
+    <section id="upowners" class="mb-16">
+      <div class="text-center mb-12">
+        <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark mb-3">头部UP主影响力分析</h2>
+        <div class="w-20 h-1 bg-primary mx-auto rounded-full"></div>
+      </div>
+      
+      <div class="bg-white rounded-2xl card-shadow p-6 md:p-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div class="lg:col-span-2">
+            <div class="chart-container bg-gray-50 rounded-xl p-4 h-[400px]">
+              <div id="upownersChart" class="w-full h-full"></div>
+            </div>
+          </div>
+          <div class="flex flex-col justify-center">
+            <h3 class="text-xl font-semibold mb-4 text-primary">头部创作者</h3>
+            <ul class="space-y-3 text-gray-700">
+              <li class="flex items-start">
+                <i class="fa fa-user-circle text-primary mt-1 mr-3"></i>
+                <span><strong>崩坏星穹铁道</strong>官方账号影响力指数最高，达2.53</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fa fa-user-circle text-primary mt-1 mr-3"></i>
+                <span><strong>亮亮也是酿酿</strong>平均点赞率最高，达11.22%</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fa fa-user-circle text-primary mt-1 mr-3"></i>
+                <span><strong>饭爷看世界</strong>单视频播放量最高，达503万次</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fa fa-user-circle text-primary mt-1 mr-3"></i>
+                <span>影响力指数综合考虑播放量、互动率和内容质量</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- 发布时间分析卡片 -->
+    <section id="publishtime" class="mb-16">
+      <div class="text-center mb-12">
+        <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark mb-3">视频发布时间分析</h2>
+        <div class="w-20 h-1 bg-primary mx-auto rounded-full"></div>
+      </div>
+      
+      <div class="bg-white rounded-2xl card-shadow p-6 md:p-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div class="chart-container bg-gray-50 rounded-xl p-4 h-[300px]">
+            <div id="publishtimeChart" class="w-full h-full"></div>
+          </div>
+          <div class="chart-container bg-gray-50 rounded-xl p-4 h-[300px]">
+            <div id="publishweekChart" class="w-full h-full"></div>
+          </div>
+        </div>
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div class="flex flex-col justify-center p-6 bg-primary/5 rounded-xl">
+            <h3 class="text-xl font-semibold mb-4 text-primary">发布时间洞察</h3>
+            <ul class="space-y-2 text-gray-700">
+              <li class="flex items-start">
+                <i class="fa fa-clock-o text-secondary mt-1 mr-3"></i>
+                <span>上午10点发布视频数量最多，达25个</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fa fa-clock-o text-secondary mt-1 mr-3"></i>
+                <span>凌晨5点发布的视频平均播放量最高，达367.2万</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fa fa-clock-o text-secondary mt-1 mr-3"></i>
+                <span>晚间22点后发布视频数量较少，竞争压力小</span>
+              </li>
+            </ul>
+          </div>
+          <div class="flex flex-col justify-center p-6 bg-secondary/5 rounded-xl">
+            <h3 class="text-xl font-semibold mb-4 text-secondary">发布周洞察</h3>
+            <ul class="space-y-2 text-gray-700">
+              <li class="flex items-start">
+                <i class="fa fa-calendar text-accent mt-1 mr-3"></i>
+                <span>周三发布视频数量最多，达45个，为内容高峰日</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fa fa-calendar text-accent mt-1 mr-3"></i>
+                <span>周一发布的视频平均播放量最高，达397.6万</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fa fa-calendar text-accent mt-1 mr-3"></i>
+                <span>周末发布视频数量较少，用户更倾向于消费内容</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- 互动相关性卡片 -->
+    <section id="correlation" class="mb-16">
+      <div class="text-center mb-12">
+        <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark mb-3">视频互动指标相关性分析</h2>
+        <div class="w-20 h-1 bg-primary mx-auto rounded-full"></div>
+      </div>
+      
+      <div class="bg-white rounded-2xl card-shadow p-6 md:p-8">
+        <div class="chart-container bg-gray-50 rounded-xl p-4 h-[500px]">
+          <div id="correlationChart" class="w-full h-full"></div>
+        </div>
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="p-6 bg-primary/5 rounded-xl">
+            <h3 class="text-lg font-semibold mb-3 text-primary">关键相关发现</h3>
+            <ul class="space-y-2 text-gray-700">
+              <li class="flex items-start">
+                <i class="fa fa-link text-secondary mt-1 mr-3"></i>
+                <span>播放量与点赞量相关性最强，相关系数达0.45</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fa fa-link text-secondary mt-1 mr-3"></i>
+                <span>弹幕数与投币数相关性较高，达0.65</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fa fa-link text-secondary mt-1 mr-3"></i>
+                <span>分享量与点赞量相关性达0.61，互动质量影响传播</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fa fa-link text-secondary mt-1 mr-3"></i>
+                <span>收藏量与播放量相关性较低，仅0.36</span>
+              </li>
+            </ul>
+          </div>
+          <div class="p-6 bg-accent/5 rounded-xl">
+            <h3 class="text-lg font-semibold mb-3 text-accent">业务意义</h3>
+            <p class="text-gray-700 leading-relaxed">
+              相关性分析表明，想要提升视频传播效果，应重点关注提升用户点赞和互动质量。弹幕和投币的高相关性说明活跃用户更愿意进行多种互动行为。分享量与点赞量的强相关提示优质内容更容易被用户主动传播。
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- 标签词云卡片 -->
+    <section id="tagcloud" class="mb-16">
+      <div class="text-center mb-12">
+        <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark mb-3">热门视频标签词云</h2>
+        <div class="w-20 h-1 bg-primary mx-auto rounded-full"></div>
+      </div>
+      
+      <div class="bg-white rounded-2xl card-shadow p-6 md:p-8">
+        <div class="chart-container bg-gray-50 rounded-xl p-4 h-[500px]">
+          <div id="tagcloudChart" class="w-full h-full"></div>
+        </div>
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="p-6 bg-primary/5 rounded-xl">
+            <h3 class="text-lg font-semibold mb-3 text-primary">游戏相关标签</h3>
+            <ul class="space-y-2 text-gray-700">
+              <li>崩坏：星穹铁道相关标签出现频次最高</li>
+              <li>绝区零、三角洲行动等新游标签表现活跃</li>
+              <li>游戏分区内容占比高，反映B站核心用户偏好</li>
+            </ul>
+          </div>
+          <div class="p-6 bg-secondary/5 rounded-xl">
+            <h3 class="text-lg font-semibold mb-3 text-secondary">内容形式标签</h3>
+            <ul class="space-y-2 text-gray-700">
+              <li>搞笑、沙雕、小剧场等标签体现轻松内容趋势</li>
+              <li>vlog、生活记录类内容保持较高热度</li>
+              <li>手书、GMV等二次创作形式依然受欢迎</li>
+            </ul>
+          </div>
+          <div class="p-6 bg-accent/5 rounded-xl">
+            <h3 class="text-lg font-semibold mb-3 text-accent">季节相关标签</h3>
+            <ul class="space-y-2 text-gray-700">
+              <li>暑假相关标签出现，反映季节性内容趋势</li>
+              <li>毕业、旅行等夏季主题内容活跃度上升</li>
+              <li>美食制作类标签结合大学生就业指南，形成特色</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 页脚 -->
+  <footer class="bg-dark text-white py-12">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div class="md:col-span-1">
+          <div class="flex items-center space-x-2 mb-4">
+            <i class="fa fa-bar-chart text-primary text-2xl"></i>
+            <span class="text-xl font-bold">B站数据看板</span>
+          </div>
+          <p class="text-gray-400 mb-4">
+            深入分析B站热榜视频数据，为内容创作者提供数据洞察和创作灵感。
+          </p>
+          <div class="flex space-x-4">
+            <a href="#" class="text-gray-400 hover:text-primary transition-colors">
+              <i class="fa fa-weibo text-xl"></i>
+            </a>
+            <a href="#" class="text-gray-400 hover:text-primary transition-colors">
+              <i class="fa fa-wechat text-xl"></i>
+            </a>
+            <a href="#" class="text-gray-400 hover:text-primary transition-colors">
+              <i class="fa fa-github text-xl"></i>
+            </a>
+          </div>
+        </div>
+        
+        <div>
+          <h3 class="text-lg font-semibold mb-4">快速链接</h3>
+          <ul class="space-y-2">
+            <li><a href="#partition" class="text-gray-400 hover:text-primary transition-colors">分区分析</a></li>
+            <li><a href="#duration" class="text-gray-400 hover:text-primary transition-colors">时长互动</a></li>
+            <li><a href="#upowners" class="text-gray-400 hover:text-primary transition-colors">UP主分析</a></li>
+            <li><a href="#publishtime" class="text-gray-400 hover:text-primary transition-colors">发布时间</a></li>
+            <li><a href="#correlation" class="text-gray-400 hover:text-primary transition-colors">互动相关</a></li>
+            <li><a href="#tagcloud" class="text-gray-400 hover:text-primary transition-colors">标签词云</a></li>
+          </ul>
+        </div>
+        
+        <div>
+          <h3 class="text-lg font-semibold mb-4">数据分析</h3>
+          <ul class="space-y-2">
+            <li><a href="#" class="text-gray-400 hover:text-primary transition-colors">内容趋势分析</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-primary transition-colors">用户互动研究</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-primary transition-colors">发布策略优化</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-primary transition-colors">竞品内容分析</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-primary transition-colors">数据可视化</a></li>
+          </ul>
+        </div>
+        
+        <div>
+          <h3 class="text-lg font-semibold mb-4">联系我们</h3>
+          <ul class="space-y-2 text-gray-400">
+            <li class="flex items-start">
+              <i class="fa fa-envelope mt-1 mr-2 text-primary"></i>
+              <span>contact@bilibili-analysis.com</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fa fa-phone mt-1 mr-2 text-primary"></i>
+              <span>+86 123 4567 8910</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fa fa-map-marker mt-1 mr-2 text-primary"></i>
+              <span>上海市浦东新区B站大厦</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500">
+        <p>© 2025 B站数据看板. 保留所有权利.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- JavaScript -->
+  <script>
+    // 导航栏滚动效果
+    window.addEventListener('scroll', function() {
+      const nav = document.getElementById('main-nav');
+      if (window.scrollY > 50) {
+        nav.classList.add('bg-white', 'nav-shadow');
+        nav.classList.remove('bg-white/90');
+      } else {
+        nav.classList.remove('bg-white', 'nav-shadow');
+        nav.classList.add('bg-white/90');
+      }
+    });
+    
+    // 移动端菜单切换
+    document.getElementById('menu-toggle').addEventListener('click', function() {
+      const mobileMenu = document.getElementById('mobile-menu');
+      mobileMenu.classList.toggle('hidden');
+    });
+    
+    // 平滑滚动
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        
+        const targetId = this.getAttribute('href');
+        if (targetId === '#') return;
+        
+        const targetElement = document.querySelector(targetId);
+        if (targetElement) {
+          window.scrollTo({
+            top: targetElement.offsetTop - 80,
+            behavior: 'smooth'
+          });
+          
+          // 关闭移动端菜单
+          document.getElementById('mobile-menu').classList.add('hidden');
+        }
+      });
+    });
+    
+    // 数据可视化
+    document.addEventListener('DOMContentLoaded', function() {
+      // 模拟JSON数据 - 实际应用中应从API或文件加载
+      const analysisData = {
+        "partition_analysis": {
+          "title": {"text": "视频分区分布分析"},
+          "tooltip": {"trigger": "axis"},
+          "legend": {"data": ["视频数量", "平均播放量(万)", "平均时长(分钟)"]},
+          "xAxis": {
+            "type": "category",
+            "data": ["GMV", "MAD·AMV", "三农", "人文历史", "仿妆cos", "出行", "动物二创", "单机游戏", "同人·手书", "喵星人", "国产原创相关", "家居房产", "小剧场", "影视剪辑", "手工", "手机游戏", "搞笑", "数码", "日常", "极客DIY", "汽车生活", "电子竞技", "短片", "社科·法律·心理", "科学科普", "穿搭", "绘画", "综合", "综艺", "网络游戏", "美食侦探", "美食制作", "美食记录", "音乐综合", "鬼畜剧场", "鬼畜调教"],
+            "axisLabel": {"rotate": 45}
+          },
+          "yAxis": [
+            {"type": "value", "name": "数量"},
+            {"type": "value", "name": "播放量/时长", "max": 6030284.399999999}
+          ],
+          "series": [
+            {"name": "视频数量", "type": "bar", "data": [2, 1, 1, 3, 2, 1, 1, 4, 12, 2, 2, 2, 2, 1, 1, 14, 10, 1, 5, 2, 1, 1, 1, 1, 3, 1, 1, 1, 1, 7, 4, 3, 2, 1, 1, 2]},
+            {"name": "平均播放量(万)", "type": "line", "yAxisIndex": 1, "data": [64.9, 194.6, 135.9, 158.0, 111.7, 81.8, 502.5, 145.8, 166.8, 269.1, 220.4, 294.6, 279.2, 159.0, 98.7, 168.5, 240.2, 298.5, 182.1, 238.5, 149.7, 111.4, 113.3, 129.1, 86.3, 131.6, 63.7, 78.6, 121.0, 143.2, 163.7, 245.6, 140.8, 54.8, 242.8, 228.4]},
+            {"name": "平均时长(分钟)", "type": "line", "yAxisIndex": 1, "data": [2.6, 22.1, 2.9, 15.3, 3.3, 13.7, 4.1, 28.9, 23.2, 4.7, 10.3, 5.0, 4.6, 24.5, 13.0, 9.2, 3.0, 3.8, 4.6, 16.1, 15.8, 46.6, 4.4, 18.6, 10.9, 0.3, 0.3, 4.5, 42.4, 4.5, 7.0, 8.0, 2.3, 0.8, 1.8, 2.3]}
+          ]
+        },
+        "duration_interaction": {
+          "title": {"text": "视频时长与互动关系"},
+          "tooltip": {"trigger": "axis"},
+          "legend": {"data": ["平均播放量", "平均点赞", "平均弹幕", "平均分享"]},
+          "xAxis": {"type": "category", "data": ["<1", "1-3", "3-5", "5-10", "10-20", "20-60", ">60"], "name": "视频时长(分钟)"},
+          "yAxis": {"type": "value", "name": "互动量"},
+          "series": [
+            {"name": "平均播放量", "type": "line", "smooth": true, "data": [161.0, 192.1, 171.8, 161.2, 189.9, 171.1, 238.7]},
+            {"name": "平均点赞", "type": "line", "smooth": true, "data": [187.6, 169.1, 92.9, 106.4, 132.0, 63.3, 40.3]},
+            {"name": "平均弹幕", "type": "line", "smooth": true, "data": [5836.888888888889, 7490.0526315789475, 3405.964285714286, 3246.75, 18589.428571428572, 13485.272727272728, 2788.0]},
+            {"name": "平均分享", "type": "line", "smooth": true, "data": [6757.666666666667, 14163.368421052632, 4895.892857142857, 5250.375, 13388.0, 2446.5454545454545, 1403.3333333333333]}
+          ]
+        },
+        "top_up_owners": {
+          "title": {"text": "头部UP主影响力分析"},
+          "tooltip": {"trigger": "axis"},
+          "legend": {"data": ["视频数量", "总播放量(百万)", "平均点赞率(%)", "影响力指数"]},
+          "xAxis": {"type": "category", "data": ["崩坏星穹铁道", "饭爷看世界", "张小伙玩配音", "亮亮也是酿酿", "小狮日记", "侯绿萝", "红豆稀饭中", "小馒头的面食面艺", "slava_fox", "小泷动漫"], "axisLabel": {"rotate": 45}},
+          "yAxis": [{"type": "value", "name": "数量"}, {"type": "value", "name": "播放量/指数", "max": 7.123293599999999}],
+          "series": [
+            {"name": "视频数量", "type": "bar", "data": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]},
+            {"name": "总播放量(百万)", "type": "line", "yAxisIndex": 1, "data": [5.94, 5.03, 4.68, 4.43, 4.73, 4.22, 3.52, 3.5, 3.53, 3.09]},
+            {"name": "平均点赞率(%)", "type": "line", "yAxisIndex": 1, "data": [7.55, 1.03, 5.55, 11.22, 1.31, 8.45, 11.46, 10.59, 7.97, 0.44]},
+            {"name": "影响力指数", "type": "line", "yAxisIndex": 1, "data": [2.53, 2.03, 1.96, 1.93, 1.91, 1.8, 1.56, 1.51, 1.5, 1.24]}
+          ]
+        },
+        "publish_time_analysis": {
+          "title": {"text": "视频发布时间分析", "left": "center"},
+          "grid": [
+            {"left": "10%", "top": "10%", "width": "45%", "height": "35%"},
+            {"left": "55%", "top": "10%", "width": "45%", "height": "35%"},
+            {"left": "10%", "top": "55%", "width": "45%", "height": "35%"},
+            {"left": "55%", "top": "55%", "width": "45%", "height": "35%"}
+          ],
+          "tooltip": {"trigger": "axis"},
+          "xAxis": [
+            {"gridIndex": 0, "type": "category", "data": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 18, 22, 23], "name": "发布时间(小时)"},
+            {"gridIndex": 1, "type": "category", "data": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], "name": "星期", "axisLabel": {"rotate": 45}},
+            {"gridIndex": 2, "type": "category", "data": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 18, 22, 23], "name": "发布时间(小时)"},
+            {"gridIndex": 3, "type": "category", "data": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], "name": "星期", "axisLabel": {"rotate": 45}}
+          ],
+          "yAxis": [
+            {"gridIndex": 0, "type": "value", "name": "视频数量"},
+            {"gridIndex": 1, "type": "value", "name": "视频数量"},
+            {"gridIndex": 2, "type": "value", "name": "平均播放量(万)"},
+            {"gridIndex": 3, "type": "value", "name": "平均播放量(万)"}
+          ],
+          "series": [
+            {"name": "每小时发布量", "type": "bar", "xAxisIndex": 0, "yAxisIndex": 0, "data": [4, 2, 4, 8, 9, 6, 2, 1, 5, 25, 13, 9, 5, 2, 1, 1, 1, 1, 1]},
+            {"name": "每周发布量", "type": "bar", "xAxisIndex": 1, "yAxisIndex": 1, "data": [2.0, 13.0, 45.0, 25.0, 15.0, null, null]},
+            {"name": "每小时平均播放量", "type": "line", "xAxisIndex": 2, "yAxisIndex": 2, "smooth": true, "data": [159.5, 163.9, 162.4, 174.0, 175.6, 226.5, 367.2, 105.4, 174.1, 189.1, 189.8, 128.9, 147.7, 143.7, 112.7, 272.6, 104.4, 128.1, 90.8]},
+            {"name": "每周平均播放量", "type": "line", "xAxisIndex": 3, "yAxisIndex": 3, "smooth": true, "data": [397.6, 257.4, 171.2, 155.3, 134.3, null, null]}
+          ]
+        },
+        "interaction_correlation": {
+          "title": {"text": "视频互动指标相关性分析"},
+          "tooltip": {"position": "top"},
+          "grid": {"height": "85%", "top": "10%"},
+          "xAxis": {"type": "category", "data": ["播放量", "点赞", "弹幕", "收藏", "投币", "分享"], "splitArea": {"show": true}},
+          "yAxis": {"type": "category", "data": ["播放量", "点赞", "弹幕", "收藏", "投币", "分享"], "splitArea": {"show": true}},
+          "visualMap": {"min": -1, "max": 1, "calculable": true, "orient": "horizontal", "left": "center", "bottom": "0%"},
+          "series": [
+            {"name": "相关性", "type": "heatmap", "data": [
+              [0, 0, 1.0],
+              [1, 0, 0.45],
+              [2, 0, 0.3],
+              [3, 0, 0.36],
+              [4, 0, 0.22],
+              [5, 0, 0.37],
+              [0, 1, 0.45],
+              [1, 1, 1.0],
+              [2, 1, 0.46],
+              [3, 1, 0.09],
+              [4, 1, 0.54],
+              [5, 1, 0.61],
+              [0, 2, 0.3],
+              [1, 2, 0.46],
+              [2, 2, 1.0],
+              [3, 2, 0.31],
+              [4, 2, 0.65],
+              [5, 2, 0.56],
+              [0, 3, 0.36],
+              [1, 3, 0.09],
+              [2, 3, 0.31],
+              [3, 3, 1.0],
+              [4, 3, 0.42],
+              [5, 3, 0.39],
+              [0, 4, 0.22],
+              [1, 4, 0.54],
+              [2, 4, 0.65],
+              [3, 4, 0.42],
+              [4, 4, 1.0],
+              [5, 4, 0.55],
+              [0, 5, 0.37],
+              [1, 5, 0.61],
+              [2, 5, 0.56],
+              [3, 5, 0.39],
+              [4, 5, 0.55],
+              [5, 5, 1.0]
+            ], "label": {"show": true}, "itemStyle": {"borderRadius": 5}}
+          ]
+        },
+        "tag_cloud": {
+          "title": {"text": "热门视频标签词云"},
+          "tooltip": {"show": true},
+          "series": [
+            {"type": "wordCloud", "shape": "circle", "sizeRange": [12, 80], "rotationRange": [-90, 90], "rotationStep": 45, "gridSize": 8, "drawOutOfBound": false, "textStyle": {"fontFamily": "sans-serif", "fontWeight": "bold", "color": "rgb(51,8,101)"}, "data": [
+              {"name": "搞笑", "value": 18},
+              {"name": "白厄", "value": 11},
+              {"name": "崩坏：星穹铁道", "value": 9},
+              {"name": "崩坏星穹铁道", "value": 9},
+              {"name": "因为太阳将要毁伤", "value": 7},
+              {"name": "生活记录", "value": 7},
+              {"name": "UP 小剧场 3.0", "value": 7},
+              {"name": "二次元", "value": 7},
+              {"name": "星穹铁道白厄", "value": 6},
+              {"name": "崩坏星穹铁道3.4创作者激励计划", "value": 6},
+              {"name": "三角洲行动", "value": 6},
+              {"name": "原创动画", "value": 6},
+              {"name": "米哈游", "value": 5},
+              {"name": "动画短片", "value": 5},
+              {"name": "翁法罗斯逐火之旅", "value": 5},
+              {"name": "三角洲破壁新赛季上线", "value": 5},
+              {"name": "三角洲行动7月激励计划", "value": 5},
+              {"name": "暑假", "value": 4},
+              {"name": "生活", "value": 4},
+              {"name": "搞笑小剧场", "value": 4},
+              {"name": "FPS", "value": 4},
+              {"name": "沙雕", "value": 4},
+              {"name": "大学生就业指南-美食版2.0", "value": 3},
+              {"name": "绝区零UP主激励计划", "value": 3},
+              {"name": "绝区零", "value": 3},
+              {"name": "绝区零 2.0版本UP主激励计划", "value": 3},
+              {"name": "美食", "value": 3},
+              {"name": "旅行攻略UP主激励计划", "value": 3},
+              {"name": "舌尖真探事务所", "value": 3},
+              {"name": "猛攻三角洲破壁新赛季", "value": 3},
+              {"name": "娱乐", "value": 3},
+              {"name": "剧情", "value": 3},
+              {"name": "电子竞技", "value": 3},
+              {"name": "王者荣耀", "value": 3},
+              {"name": "动漫", "value": 3}
+            ]}
+          ]
+        }
+      };
+      
+      // 初始化分区分析图表
+      const partitionChart = echarts.init(document.getElementById('partitionChart'));
+      partitionChart.setOption(analysisData.partition_analysis);
+      
+      // 初始化时长互动图表
+      const durationChart = echarts.init(document.getElementById('durationChart'));
+      durationChart.setOption(analysisData.duration_interaction);
+      
+      // 初始化UP主分析图表
+      const upownersChart = echarts.init(document.getElementById('upownersChart'));
+      upownersChart.setOption(analysisData.top_up_owners);
+      
+      // 初始化发布时间图表
+      const publishtimeChart = echarts.init(document.getElementById('publishtimeChart'));
+      publishtimeChart.setOption({
+        ...analysisData.publish_time_analysis,
+        series: [analysisData.publish_time_analysis.series[0], analysisData.publish_time_analysis.series[2]]
+      });
+      
+      const publishweekChart = echarts.init(document.getElementById('publishweekChart'));
+      publishweekChart.setOption({
+        ...analysisData.publish_time_analysis,
+        series: [analysisData.publish_time_analysis.series[1], analysisData.publish_time_analysis.series[3]]
+      });
+      
+      // 初始化互动相关性图表
+      const correlationChart = echarts.init(document.getElementById('correlationChart'));
+      correlationChart.setOption(analysisData.interaction_correlation);
+      
+      // 初始化标签词云图表
+      const tagcloudChart = echarts.init(document.getElementById('tagcloudChart'));
+      tagcloudChart.setOption(analysisData.tag_cloud);
+      
+      // 窗口大小变化时重新渲染图表
+      window.addEventListener('resize', function() {
+        partitionChart.resize();
+        durationChart.resize();
+        upownersChart.resize();
+        publishtimeChart.resize();
+        publishweekChart.resize();
+        correlationChart.resize();
+        tagcloudChart.resize();
+      });
+    });
+  </script>
 </body>
 </html>
