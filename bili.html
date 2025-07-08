@@ -555,13 +555,3 @@
   </script>
 </body>
 </html>
-
-
-      // 词云图特殊处理（修复颜色随机逻辑）
-      const tagOption = { ...data.tag_cloud };
-      const pinkColors = ['#FF729F', '#FF9EBB', '#FFB6C1', '#DDA0DD'];
-      tagOption.series[0].textStyle.color = () =>
-        pinkColors[Math.floor(Math.random() * pinkColors.length)];
-      initChart('analysis6_标签词云', tagOption);
-    }
-
