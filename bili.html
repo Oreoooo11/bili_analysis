@@ -545,17 +545,15 @@
       initChart('analysis3_发布时间分析', data.top_up_owners);
       initChart('analysis4_头部UP主分析', data.publish_time_analysis);
       initChart('analysis5_时长互动分析', data.interaction_correlation);
- 
-    fetch('bili_analysis_results.json')
-     .then(response => response.json())
-     .then(data => {
-        const tagOption = JSON.parse(JSON.stringify(data.tag_cloud));
-        const pinkColors = ['#FF729F', '#FF9EBB', '#FFB6C1', '#DDA0DD'];
-        tagOption.series[0].textStyle.color = () => pinkColors[Math.floor(Math.random() * pinkColors.length)];
-        initChart('analysis6_标签词云', tagOption);
-      })
-     .catch(error => console.error('Error loading JSON file:', error));
+      
+      // 词云图单独处理
+      const tagOption = JSON.parse(JSON.stringify(data.tag_cloud));
+      const pinkColors = ['#FF729F', '#FF9EBB', '#FFB6C1', '#DDA0DD'];
+      tagOption.series[0].textStyle.color = () => pinkColors[Math.floor(Math.random() * pinkColors.length)];
+      initChart('analysis6_标签词云', tagOption);
     }
   </script>
 </body>
 </html>
+
+能不能将你说的修改的部分，合并到这个原有的代码里，其他图表的部分不变，只修改词云图的设置就好
